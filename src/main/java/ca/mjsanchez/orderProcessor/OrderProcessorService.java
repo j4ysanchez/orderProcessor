@@ -30,6 +30,10 @@ public class OrderProcessorService {
 
     public void checkPendingOrders() {
         System.out.println("Checking pending orders");
+
+        System.out.println("Pending orders: " + pendingOrders.size());
+
+        // cleanup pending orders
     }
 
     @KafkaListener(topics = "order-events", groupId = "order-group")
