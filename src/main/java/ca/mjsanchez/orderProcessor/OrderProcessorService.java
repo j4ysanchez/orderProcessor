@@ -1,5 +1,11 @@
 package ca.mjsanchez.orderProcessor;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.kstream.KTable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -10,21 +16,24 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
+import java.util.Properties;
 import com.google.gson.Gson;
 
 @Service
 public class OrderProcessorService {
     Map<String, Order> pendingOrders;
+    Map<String, String> paidOrders;
+
     @Autowired
     private KafkaTemplate<String, String> kafkaTemplate;
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public OrderProcessorService() {
         pendingOrders = new LinkedHashMap<String, Order>();
+        paidOrders = new LinkedHashMap<String, String>();
 
         // check for pending orders every 30 seconds
-        scheduler.scheduleAtFixedRate(this::checkPendingOrders, 0, 30, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(this::checkPendingOrders, 0, 5, TimeUnit.SECONDS);
 
     }
 
@@ -33,6 +42,21 @@ public class OrderProcessorService {
 
         System.out.println("Pending orders: " + pendingOrders.size());
 
+        // iterate through each item in pendingOrders
+        for (Map.Entry<String, Order> entry : pendingOrders.entrySet()) {
+            String orderId = entry.getKey();
+            Order order = entry.getValue();
+
+            if (paidOrders.containsKey(orderId)) {
+                String paymentStatus = paidOrders.get(orderId);
+                if (paymentStatus.equals("valid")) {
+                    sendOrder(orderId);
+                } else {
+                    System.out.println("Payment not valid for: " + orderId);
+                    cancelOrder(orderId);
+                }
+            }
+        }
         // cleanup pending orders
     }
 
@@ -55,6 +79,9 @@ public class OrderProcessorService {
         pendingOrders.put(order.getId(), order);
 
         System.out.println("Storing order: " + order.getId());
+
+        checkPendingOrders();
+
     }
 
     @KafkaListener(topics = "payment-events", groupId = "payment-group")
@@ -67,15 +94,33 @@ public class OrderProcessorService {
         String orderId = paymentJson.get("order_id");
         String paymentStatus = paymentJson.get("payment_status");
 
-        if (!pendingOrders.containsKey(orderId)) {
-            System.out.println("Order not found: " + orderId);
-            // TODO: get payment service to cancel payment
-        }
+        // if (!pendingOrders.containsKey(orderId)) {
+        // System.out.println("Order not found: " + orderId);
+        // // TODO: get payment service to cancel payment
+        // }
 
-        if (paymentStatus.equals("valid")) {
-            System.out.println("Payment valid for: " + orderId);
-            sendOrder(orderId);
-        }
+        // if (paymentStatus.equals("valid")) {
+        // System.out.println("Payment valid for: " + orderId);
+        // sendOrder(orderId);
+        // }
+
+        paidOrders.put(orderId, paymentStatus);
+
+        checkPendingOrders();
+    }
+
+    public void cancelOrder(String orderId) {
+        System.out.println(orderId + " order cancelled!");
+        String topic = "order-canceled-events";
+        Gson gson = new Gson();
+
+        Order orderToBeSent = pendingOrders.get(orderId);
+        orderToBeSent.setStatus("canceled");
+
+        kafkaTemplate.send(topic, orderId, gson.toJson(orderToBeSent));
+
+        pendingOrders.remove(orderId);
+
     }
 
     public void sendOrder(String orderId) {
@@ -87,7 +132,7 @@ public class OrderProcessorService {
         Order orderToBeSent = pendingOrders.get(orderId);
         orderToBeSent.setStatus("completed");
 
-        kafkaTemplate.send(topic, gson.toJson(orderToBeSent));
+        kafkaTemplate.send(topic, orderId, gson.toJson(orderToBeSent));
 
         pendingOrders.remove(orderId);
 
