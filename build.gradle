@@ -23,6 +23,7 @@ dependencies {
 	implementation 'org.apache.kafka:kafka-clients'
 	implementation 'com.google.code.gson:gson'
 	implementation 'org.apache.kafka:kafka-streams'
+
 }
 
 tasks.named('test') {

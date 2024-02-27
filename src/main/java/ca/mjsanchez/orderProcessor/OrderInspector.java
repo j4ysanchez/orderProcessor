@@ -1,5 +1,6 @@
 package ca.mjsanchez.orderProcessor;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -14,9 +15,66 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 @Service
 public class OrderInspector {
+    public static void main(String[] args) {
+        Properties props = new Properties();
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "join-example");
+        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+        props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+
+        StreamsBuilder builder = new StreamsBuilder();
+
+        KTable<String, String> helloEvents = builder.table("hello-log", Materialized.as("hello-store"));
+        KTable<String, String> byeEvents = builder.table("bye-log", Materialized.as("bye-store"));
+
+        // Filter the KTables
+        KTable<String, String> filteredHelloEvents = helloEvents.filter((key, value) -> {
+            if (value != null) {
+
+                System.out.println("hello-log: " + value);
+                JsonObject json = JsonParser.parseString(value).getAsJsonObject();
+                return json.has("orderid");
+            }
+            return false;
+        });
+
+        KTable<String, String> filteredByeEvents = byeEvents.filter((key, value) -> {
+            if (value != null) {
+                System.out.println("bye-log: " + value);
+                JsonObject json = JsonParser.parseString(value).getAsJsonObject();
+                return json.has("orderid");
+            }
+            return false;
+        });
+
+        // Perform the join operation
+        KTable<String, String> joined = filteredHelloEvents.join(filteredByeEvents, (helloValue, byeValue) -> {
+            JsonObject helloJson = JsonParser.parseString(helloValue).getAsJsonObject();
+            JsonObject byeJson = JsonParser.parseString(byeValue).getAsJsonObject();
+
+            if (helloJson.get("orderid").getAsString().equals(byeJson.get("orderid").getAsString())) {
+                // return helloValue + ", " + byeValue;
+                String joinTemplate = "{\"orderid\":\"%s\",\"data\":\"%s\"}";
+                String joinValue = String.format(joinTemplate,
+                        helloJson.get("orderid").getAsString(),
+                        helloJson.get("data").getAsString()
+                                + ", " + byeJson.get("data").getAsString());
+                return joinValue;
+            } else {
+                return null;
+            }
+        });
+        joined.toStream().to("joined-events");
+
+        KafkaStreams streams = new KafkaStreams(builder.build(), props);
+        streams.start();
+    }
 
     // private KafkaStreams streams;
 
