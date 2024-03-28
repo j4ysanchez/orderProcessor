@@ -28,57 +28,57 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 @Service
-@EnableKafkaStreams
+// @EnableKafkaStreams
 public class OrderListener {
 
-    public OrderListener() {
-        Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "join-example");
-        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-        props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+    // public OrderListener() {
+    //     Properties props = new Properties();
+    //     props.put(StreamsConfig.APPLICATION_ID_CONFIG, "join-example");
+    //     props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+    //     props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+    //     props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+    //     props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
 
-        StreamsBuilder builder = new StreamsBuilder();
-        KTable<String, String> helloEvents = builder.table("hello-events", Materialized.as("hello-store"));
-        KTable<String, String> byeEvents = builder.table("bye-events", Materialized.as("bye-store"));
+    //     StreamsBuilder builder = new StreamsBuilder();
+    //     KTable<String, String> helloEvents = builder.table("hello-events", Materialized.as("hello-store"));
+    //     KTable<String, String> byeEvents = builder.table("bye-events", Materialized.as("bye-store"));
 
-        // Filter the KTables
-        KTable<String, String> filteredHelloEvents = helloEvents.filter((key, value) -> {
-            if (value != null) {
+    //     // Filter the KTables
+    //     KTable<String, String> filteredHelloEvents = helloEvents.filter((key, value) -> {
+    //         if (value != null) {
 
-                System.out.println("hello-events: " + value);
-                JsonObject json = JsonParser.parseString(value).getAsJsonObject();
-                return json.has("orderid");
-            }
-            return false;
-        });
+    //             System.out.println("hello-events: " + value);
+    //             JsonObject json = JsonParser.parseString(value).getAsJsonObject();
+    //             return json.has("orderid");
+    //         }
+    //         return false;
+    //     });
 
-        KTable<String, String> filteredByeEvents = byeEvents.filter((key, value) -> {
-            if (value != null) {
-                System.out.println("bye-events: " + value);
-                JsonObject json = JsonParser.parseString(value).getAsJsonObject();
-                return json.has("orderid");
-            }
-            return false;
-        });
-        // Continue with your stream processing logic
+    //     KTable<String, String> filteredByeEvents = byeEvents.filter((key, value) -> {
+    //         if (value != null) {
+    //             System.out.println("bye-events: " + value);
+    //             JsonObject json = JsonParser.parseString(value).getAsJsonObject();
+    //             return json.has("orderid");
+    //         }
+    //         return false;
+    //     });
+    //     // Continue with your stream processing logic
 
-        // Perform the join operation
-        KTable<String, String> joined = filteredHelloEvents.join(filteredByeEvents, (helloValue, byeValue) -> {
-            JsonObject helloJson = JsonParser.parseString(helloValue).getAsJsonObject();
-            JsonObject byeJson = JsonParser.parseString(byeValue).getAsJsonObject();
+    //     // Perform the join operation
+    //     KTable<String, String> joined = filteredHelloEvents.join(filteredByeEvents, (helloValue, byeValue) -> {
+    //         JsonObject helloJson = JsonParser.parseString(helloValue).getAsJsonObject();
+    //         JsonObject byeJson = JsonParser.parseString(byeValue).getAsJsonObject();
 
-            if (helloJson.get("orderid").getAsString().equals(byeJson.get("orderid").getAsString())) {
-                return helloValue + ", " + byeValue;
-            } else {
-                return null;
-            }
-        });
-        joined.toStream().to("joined-events");
+    //         if (helloJson.get("orderid").getAsString().equals(byeJson.get("orderid").getAsString())) {
+    //             return helloValue + ", " + byeValue;
+    //         } else {
+    //             return null;
+    //         }
+    //     });
+    //     joined.toStream().to("joined-events");
 
-        KafkaStreams streams = new KafkaStreams(builder.build(), props);
-        streams.start();
+    //     KafkaStreams streams = new KafkaStreams(builder.build(), props);
+    //     streams.start();
 
-    }
+    // }
 }

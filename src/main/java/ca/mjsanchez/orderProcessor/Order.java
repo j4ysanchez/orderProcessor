@@ -3,10 +3,10 @@ package ca.mjsanchez.orderProcessor;
 public class Order {
     private String id;
     private String timestamp;
-    private String customerName;
-    private String customerAddress;
-    private String pizzaToppings;
-    private String pizzaSize;
+    private String customer;
+    private String address;
+    private String pizzaType;
+    private String size;
     private String status;
 
     public String getStatus() {
@@ -24,10 +24,10 @@ public class Order {
             String pizzaSize) {
         this.id = id;
         this.timestamp = timestamp;
-        this.customerName = customerName;
-        this.customerAddress = customerAddress;
-        this.pizzaToppings = pizzaToppings;
-        this.pizzaSize = pizzaSize;
+        this.customer = customerName;
+        this.address = customerAddress;
+        this.pizzaType = pizzaToppings;
+        this.size = pizzaSize;
     }
 
     public String getId() {
@@ -46,36 +46,36 @@ public class Order {
         this.timestamp = timestamp;
     }
 
-    public String getCustomerName() {
-        return customerName;
+    public String getCustomer() {
+        return customer;
     }
 
-    public void setCustomerName(String customerName) {
-        this.customerName = customerName;
+    public void setCustomer(String customerName) {
+        this.customer = customerName;
     }
 
-    public String getCustomerAddress() {
-        return customerAddress;
+    public String getAddress() {
+        return address;
     }
 
-    public void setCustomerAddress(String customerAddress) {
-        this.customerAddress = customerAddress;
+    public void setAddress(String customerAddress) {
+        this.address = customerAddress;
     }
 
-    public String getPizzaToppings() {
-        return pizzaToppings;
+    public String getPizzaType() {
+        return pizzaType;
     }
 
-    public void setPizzaToppings(String pizzaToppings) {
-        this.pizzaToppings = pizzaToppings;
+    public void setPizzaType(String pizzaToppings) {
+        this.pizzaType = pizzaToppings;
     }
 
-    public String getPizzaSize() {
-        return pizzaSize;
+    public String getSize() {
+        return size;
     }
 
-    public void setPizzaSize(String pizzaSize) {
-        this.pizzaSize = pizzaSize;
+    public void setSize(String pizzaSize) {
+        this.size = pizzaSize;
     }
 
 }
